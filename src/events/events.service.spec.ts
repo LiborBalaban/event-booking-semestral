@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../prisma.service';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException} from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 describe('EventsService', () => {
@@ -106,6 +106,31 @@ describe('EventsService', () => {
       } as any);
 
       await expect(service.cancelRegistration(userId, eventId)).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('Pravidlo 5: Věkové omezení (18+)', () => {
+    it('měl by vyhodit ForbiddenException, pokud se na 18+ událost hlásí nezletilý', async () => {
+      
+      const eventId = 'event-adult';
+      const userId = 'user-child';
+
+      prismaMock.event.findUnique.mockResolvedValue({
+        id: eventId,
+        name: 'Ochutnávka vína',
+        capacity: 10,
+        date: futureDate,
+        isAdultOnly: true,
+        registrations: []
+      } as any);
+
+      prismaMock.user.findUnique.mockResolvedValue({
+        id: userId,
+        email: 'kid@test.cz',
+        age: 16
+      } as any);
+
+      await expect(service.registerUserForEvent(userId, eventId)).rejects.toThrow(ForbiddenException);
     });
   });
 });
