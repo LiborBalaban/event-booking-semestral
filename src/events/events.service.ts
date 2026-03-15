@@ -6,7 +6,7 @@ export class EventsService {
   constructor(private prisma: PrismaService) {}
 
   async registerUserForEvent(userId: string, eventId: string) {
-    
+   
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: { registrations: true },
@@ -14,6 +14,10 @@ export class EventsService {
 
     if (!event) {
       throw new NotFoundException('Událost nebyla nalezena');
+    }
+
+    if (event.date < new Date()) {
+      throw new BadRequestException('Na událost se již nelze přihlásit, protože proběhla');
     }
 
     if (event.registrations.length >= event.capacity) {
