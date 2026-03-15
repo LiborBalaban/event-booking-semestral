@@ -40,3 +40,16 @@ jobs:
 
     - name: Spuštění integračních E2E testů
       run: npm run test:e2e
+
+    - name: Sestavení Docker image
+      run: docker build -t event-booking-api .
+
+    - name: Zabalení Docker image do souboru
+      run: docker save -o event-booking-api.tar event-booking-api
+
+    - name: Publikace Docker image jako artefaktu
+      uses: actions/upload-artifact@v4
+      with:
+        name: docker-image
+        path: event-booking-api.tar
+        retention-days: 7
