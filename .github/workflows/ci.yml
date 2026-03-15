@@ -37,3 +37,6 @@ jobs:
       with:
         name: coverage-report
         path: coverage/
+
+    - name: Spuštění integračních E2E testů
+      run: npm run test:e2e
