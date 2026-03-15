@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { EventsService } from './events.service';
 import { PrismaService } from '../prisma.service';
 import { mockDeep, DeepMockProxy } from 'jest-mock-extended';
-import { BadRequestException, ConflictException, ForbiddenException} from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
 describe('EventsService', () => {
@@ -42,6 +42,8 @@ describe('EventsService', () => {
         ]
       } as any);
 
+      prismaMock.user.findUnique.mockResolvedValue({ id: userId, age: 25 } as any);
+
       await expect(service.registerUserForEvent(userId, eventId)).rejects.toThrow(BadRequestException);
     });
   });
@@ -55,12 +57,14 @@ describe('EventsService', () => {
         id: eventId,
         name: 'Super koncert',
         capacity: 10,
-        date: futureDate, 
+        date: futureDate,
         isAdultOnly: false,
         registrations: [
           { id: 'reg1', userId: userId, eventId: eventId, createdAt: new Date() }
         ]
       } as any);
+
+      prismaMock.user.findUnique.mockResolvedValue({ id: userId, age: 25 } as any);
 
       await expect(service.registerUserForEvent(userId, eventId)).rejects.toThrow(ConflictException);
     });
@@ -82,6 +86,8 @@ describe('EventsService', () => {
         isAdultOnly: false,
         registrations: []
       } as any);
+
+      prismaMock.user.findUnique.mockResolvedValue({ id: userId, age: 25 } as any);
 
       await expect(service.registerUserForEvent(userId, eventId)).rejects.toThrow(BadRequestException);
     });
@@ -111,7 +117,6 @@ describe('EventsService', () => {
 
   describe('Pravidlo 5: Věkové omezení (18+)', () => {
     it('měl by vyhodit ForbiddenException, pokud se na 18+ událost hlásí nezletilý', async () => {
-      
       const eventId = 'event-adult';
       const userId = 'user-child';
 

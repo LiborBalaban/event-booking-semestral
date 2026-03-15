@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 
 @Injectable()
@@ -6,7 +6,7 @@ export class EventsService {
   constructor(private prisma: PrismaService) {}
 
   async registerUserForEvent(userId: string, eventId: string) {
-   
+    
     const event = await this.prisma.event.findUnique({
       where: { id: eventId },
       include: { registrations: true },
@@ -14,6 +14,18 @@ export class EventsService {
 
     if (!event) {
       throw new NotFoundException('Událost nebyla nalezena');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId }
+    });
+
+    if (!user) {
+      throw new NotFoundException('Uživatel nebyl nalezen');
+    }
+
+    if (event.isAdultOnly && user.age < 18) {
+      throw new ForbiddenException('Tato událost je pouze pro osoby starší 18 let');
     }
 
     if (event.date < new Date()) {
@@ -30,10 +42,7 @@ export class EventsService {
     }
 
     return this.prisma.registration.create({
-      data: {
-        userId,
-        eventId,
-      },
+      data: { userId, eventId },
     });
   }
 
