@@ -85,4 +85,27 @@ describe('EventsService', () => {
     });
   });
 
+
+  describe('Pravidlo 3: Deadline přihlášek', () => {
+    it('měl by vyhodit BadRequestException, pokud událost již proběhla', async () => {
+
+      const eventId = 'event-1';
+      const userId = 'user-1';
+
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 1);
+
+      prismaMock.event.findUnique.mockResolvedValue({
+        id: eventId,
+        name: 'Včerejší párty',
+        capacity: 10,
+        date: pastDate,
+        isAdultOnly: false,
+        registrations: []
+      } as any);
+
+      await expect(service.registerUserForEvent(userId, eventId)).rejects.toThrow(BadRequestException);
+    });
+  });
+
 });
