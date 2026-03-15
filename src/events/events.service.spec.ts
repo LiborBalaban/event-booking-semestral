@@ -108,4 +108,27 @@ describe('EventsService', () => {
     });
   });
 
+  describe('Pravidlo 4: Validace zrušení', () => {
+    it('měl by vyhodit BadRequestException při pokusu o zrušení méně než 24h předem', async () => {
+
+      const eventId = 'event-1';
+      const userId = 'user-1';
+
+      const closeDate = new Date();
+      closeDate.setHours(closeDate.getHours() + 12);
+
+      prismaMock.registration.findUnique.mockResolvedValue({
+        id: 'reg1',
+        userId: userId,
+        eventId: eventId,
+        createdAt: new Date(),
+        event: {
+          date: closeDate
+        }
+      } as any);
+
+      await expect(service.cancelRegistration(userId, eventId)).rejects.toThrow(BadRequestException);
+    });
+  });
+
 });
