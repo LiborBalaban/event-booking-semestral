@@ -9,6 +9,9 @@ describe('EventsService', () => {
   let service: EventsService;
   let prismaMock: DeepMockProxy<PrismaClient>;
 
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + 1);
+
   beforeEach(async () => {
     prismaMock = mockDeep<PrismaClient>();
 
@@ -31,28 +34,7 @@ describe('EventsService', () => {
         id: eventId,
         name: 'Super koncert',
         capacity: 2,
-        date: new Date(),
-        isAdultOnly: false,
-        registrations: [
-          { id: 'reg1', userId: 'u1', eventId, createdAt: new Date() },
-          { id: 'reg2', userId: 'u2', eventId, createdAt: new Date() }
-        ]
-      } as any);
-
-      await expect(service.registerUserForEvent(userId, eventId)).rejects.toThrow(BadRequestException);
-    });
-  });
-
-  describe('Pravidlo 1: Omezení kapacity', () => {
-    it('měl by vyhodit BadRequestException, pokud je událost vyprodaná', async () => {
-      const eventId = 'event-1';
-      const userId = 'user-1';
-
-      prismaMock.event.findUnique.mockResolvedValue({
-        id: eventId,
-        name: 'Super koncert',
-        capacity: 2,
-        date: new Date(),
+        date: futureDate,
         isAdultOnly: false,
         registrations: [
           { id: 'reg1', userId: 'u1', eventId, createdAt: new Date() },
@@ -65,8 +47,7 @@ describe('EventsService', () => {
   });
 
   describe('Pravidlo 2: Zabránění duplicitě', () => {
-    it('měl by vyhodit ConflictException, pokud se uživatel hlásí na stejnou událost podruhé', async () => {
-
+    it('měl by vyhodit ConflictException, pokud se uživatel hlásí podruhé', async () => {
       const eventId = 'event-1';
       const userId = 'user-1';
 
@@ -74,7 +55,7 @@ describe('EventsService', () => {
         id: eventId,
         name: 'Super koncert',
         capacity: 10,
-        date: new Date(),
+        date: futureDate, 
         isAdultOnly: false,
         registrations: [
           { id: 'reg1', userId: userId, eventId: eventId, createdAt: new Date() }
@@ -85,10 +66,8 @@ describe('EventsService', () => {
     });
   });
 
-
   describe('Pravidlo 3: Deadline přihlášek', () => {
     it('měl by vyhodit BadRequestException, pokud událost již proběhla', async () => {
-
       const eventId = 'event-1';
       const userId = 'user-1';
 
@@ -110,7 +89,6 @@ describe('EventsService', () => {
 
   describe('Pravidlo 4: Validace zrušení', () => {
     it('měl by vyhodit BadRequestException při pokusu o zrušení méně než 24h předem', async () => {
-
       const eventId = 'event-1';
       const userId = 'user-1';
 
@@ -130,5 +108,4 @@ describe('EventsService', () => {
       await expect(service.cancelRegistration(userId, eventId)).rejects.toThrow(BadRequestException);
     });
   });
-
 });

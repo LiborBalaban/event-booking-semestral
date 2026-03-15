@@ -36,4 +36,29 @@ export class EventsService {
       },
     });
   }
+
+  async cancelRegistration(userId: string, eventId: string) {
+    const registration = await this.prisma.registration.findUnique({
+      where: {
+        userId_eventId: { userId, eventId }
+      },
+      include: { event: true },
+    });
+
+    if (!registration) {
+      throw new NotFoundException('Přihláška nebyla nalezena');
+    }
+
+    const eventDate = registration.event.date;
+    const now = new Date();
+    const hoursUntilEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursUntilEvent < 24) {
+      throw new BadRequestException('Přihlášku nelze zrušit méně než 24 hodin před začátkem události');
+    }
+
+    return this.prisma.registration.delete({
+      where: { id: registration.id },
+    });
+  }
 }
