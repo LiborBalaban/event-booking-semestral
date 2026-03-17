@@ -53,3 +53,19 @@ jobs:
         name: docker-image
         path: event-booking-api.tar
         retention-days: 7
+        
+    - name: Vytvoření dočasného Kubernetes clusteru (Kind)
+      run: kind create cluster
+
+    - name: Nahrání našeho image do clusteru
+      run: kind load docker-image event-booking-api:latest
+
+    - name: Vytvoření Staging namespace (Oddělení prostředí)
+      run: kubectl create namespace staging
+
+    - name: Automatické nasazení manifestů (CD)
+      run: kubectl apply -f k8s/ -n staging
+
+    - name: Výpis běžících kontejnerů (Důkaz pro učitele)
+      run: kubectl get all -n staging
+        
