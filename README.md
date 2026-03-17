@@ -72,6 +72,17 @@ Automatizované nasazení (CD) do `staging` probíhá přímo v pipeline pomocí
 
 ## 5. Jak spustit projekt lokálně
 
+### Krok 0: Příprava prostředí (DŮLEŽITÉ)
+Z bezpečnostních důvodů nejsou citlivé údaje uloženy v repozitáři. Před prvním spuštěním si v kořenovém adresáři projektu vytvořte soubor s názvem `.env` a vložte do něj tyto lokální testovací údaje:
+
+```env
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=tajneheslo
+POSTGRES_DB=events_db
+DATABASE_URL=postgresql://postgres:tajneheslo@db:5432/events_db?schema=public
+```
+*(Tyto hodnoty slouží pro lokální kontejner. Docker a Prisma si je automaticky načtou a databáze se s nimi rovnou zprovozní).*
+
 ### Varianta A: Kompletní spuštění v Dockeru (Doporučeno)
 Tento příkaz sestaví aplikaci a nastartuje ji i s PostgreSQL databází:
 ```bash
