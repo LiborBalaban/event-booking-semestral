@@ -1,98 +1,78 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Správa rezervací událostí (Event Booking API)
+Semestrální projekt spojující metodiku **TDD/BDD** s kompletním **DevOps workflow**. Aplikace poskytuje REST API pro správu událostí a registraci uživatelů.
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+---
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## 1. Doména a Byznys pravidla (TDD)
+Aplikace obsahuje 3 hlavní entity: `User`, `Event` a `Registration` (vazba N:M).
 
-## Description
+**Implementovaná byznys pravidla (ošetřeno v byznys vrstvě):**
+1. **Kapacita:** Nelze překročit maximální kapacitu události.
+2. **Duplicita:** Jeden uživatel se nemůže na stejnou událost přihlásit dvakrát (idempotence).
+3. **Věkové omezení:** Na akce s příznakem `isAdultOnly` se smí přihlásit pouze uživatelé starší 18 let.
+4. **Deadline:** Registrace je možná nejpozději 24 hodin před začátkem události.
+5. **Storno:** Zrušit registraci lze nejpozději 24 hodin před začátkem, jinak propadá.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+---
 
-## Project setup
+## 2. Architektura a Technologie
+* **Aplikace:** NestJS (Node.js framework), TypeScript
+* **Architektura:** Třívrstvá (Controller -> Service -> Data Access/Prisma)
+* **Databáze:** PostgreSQL (spravováno přes Prisma ORM)
+* **Validace:** Globální DTO validace (ValidationPipe), striktní error handling.
+* **Kontejnerizace:** Docker (Multi-stage build)
+* **Orchestrace:** Kubernetes (K8s)
 
-```bash
-$ npm install
+**Diagram komponent a datových toků:**
+```mermaid
+graph TD
+    Client[Klient / API Call] -->|HTTP REST| Controller[Events Controller]
+    Controller -->|Validace DTO| Service[Events Service - Byznys Logika]
+    Service -->|Ověření pravidel| Service
+    Service -->|Dotaz přes Prisma ORM| DB[(PostgreSQL Databáze)]
 ```
+---
 
-## Compile and run the project
+## 3. Testovací strategie a TDD
+Projekt byl vyvíjen striktně metodikou **Test-Driven Development (TDD)** (cyklus Red-Green-Refactor je viditelný v historii gitu).
+* **Unit testy (Jest):** Pokrývají doménovou logiku v `EventsService`. Psány podle principů **FIRST** a strukturovány vzorem **AAA (Arrange, Act, Assert)**. K izolaci od databáze je použit `jest-mock-extended` (mockování vrstvy Prisma).
+* **Integrační (E2E) testy (Supertest):** Testují reálné HTTP požadavky přes `EventsController` na aplikační logiku včetně validací DTO.
+* **Statická analýza:** Kód podléhá kontrole pomocí nástroje ESLint.
+* **Code Coverage:** Udržována nad 70 % (Lines) pro doménovou vrstvu. Report je generován automaticky v CI pipeline jako artefakt. Vynechány jsou pouze konfigurační moduly frameworku (main.ts, moduly), které neobsahují byznys logiku.
 
+---
+
+## 4. DevOps, CI/CD a Prostředí
+Projekt využívá plně automatizovanou CI/CD pipeline na GitHub Actions.
+
+**CI Pipeline obsahuje kroky:**
+1. Stažení kódu a instalace závislostí s NPM cache.
+2. Spuštění statické analýzy a linteru.
+3. Spuštění Unit testů + měření pokrytí (uložení reportu jako artefakt).
+4. Spuštění E2E integračních testů.
+5. Sestavení Docker image a jeho publikace jako artefaktu.
+
+**Kontejnerizace (Docker):**
+* Využit **Multi-stage build** pro minimalizaci velikosti image.
+* Z bezpečnostních důvodů (Best Practice) běží produkční kontejner pod ne-root uživatelem (`USER node`).
+
+**CD a Kubernetes (K8s):**
+Zvoleno oddělení prostředí přes **Kubernetes Namespaces**.
+* **Staging:** `kubectl create namespace staging`
+* **Production:** `kubectl create namespace production`
+
+Automatizované nasazení (CD) do `staging` probíhá přímo v pipeline pomocí dočasného clusteru (nástroj Kind). Pro produkci se používá stejná sada manifestů, liší se pouze injektovaný `Secret`.
+
+**Struktura manifestů (`/k8s`):**
+* `db.yaml` a `api.yaml`: Definice Deploymentů a Services. API obsahuje definované limity na CPU a RAM.
+* `configmap.yaml`: Veřejná necitlivá konfigurace.
+* `secret-template.yaml`: Ukázka struktury tajných údajů. Skutečná hesla nejsou uložena v gitu v plaintextu.
+
+---
+
+## 5. Jak spustit projekt lokálně
+
+### Varianta A: Kompletní spuštění v Dockeru (Doporučeno)
+Tento příkaz sestaví aplikaci a nastartuje ji i s PostgreSQL databází:
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
-
-## Run tests
-
-```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
-```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+docker compose up --build
