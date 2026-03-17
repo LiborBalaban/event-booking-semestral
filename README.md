@@ -76,3 +76,19 @@ Automatizované nasazení (CD) do `staging` probíhá přímo v pipeline pomocí
 Tento příkaz sestaví aplikaci a nastartuje ji i s PostgreSQL databází:
 ```bash
 docker compose up --build
+```
+
+### Varianta B: Spuštění testů a lokální vývoj
+Pro lokální ověření funkčnosti a spuštění testů bez Dockeru:
+```bash
+npm install
+npm run test           # Unit testy
+npm run test:e2e       # Integrační testy
+npm run test:cov       # Výpočet Code Coverage
+```
+
+### Přístup přes Kubernetes (Lokální Ingress/Port-forward)
+Pokud nasadíte manifesty do lokálního clusteru, aplikaci zpřístupníte příkazem:
+```bash
+kubectl port-forward svc/api-service 3000:3000 -n staging
+```
